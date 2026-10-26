@@ -1,6 +1,6 @@
 <!-- SEO: AI Skill repository, Codex skill management, Agent Skills, context optimization, token efficiency -->
 
-# Skill Router：构建轻量的 AI Skill 仓库，减少上下文侵蚀
+# Skill Router：构建轻量的 AI Skill 仓库，减少上下文占用
 
 > **English summary:** Skill Router is a lightweight AI Agent Skill repository and routing layer. It keeps inactive skills outside automatic discovery, maintains a searchable registry, and loads only the skills required for the current task to reduce context overhead and token cost.
 
@@ -215,6 +215,6 @@ Skill Router 遵循四个原则：
 
 Skill Router 不是另一个业务 skill，而是一个 Skill 仓库管理层。它把完整技能放在非自动扫描的仓库中，只将当前真正需要的能力取出使用。
 
-通过技能索引、按需取用、仓库归档和可恢复操作，Skill Router 可以帮助 AI 编程环境减少上下文侵蚀，降低 Token 开销，并让 Skill 资产保持轻量、清晰和可控。
+通过技能索引、按需取用、仓库归档和可恢复操作，Skill Router 可以帮助 AI 编程环境减少上下文占用，降低 Token 开销，并让 Skill 资产保持轻量、清晰和可控。
 
 如果你的 Codex skill 已经从几个增长到几十个，Skill Router 可以作为一个简单的上下文优化入口。
