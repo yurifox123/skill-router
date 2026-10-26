@@ -2,6 +2,8 @@
 
 # Skill Router：构建轻量的 AI Skill 仓库，减少上下文侵蚀
 
+> **English summary:** Skill Router is a lightweight AI Agent Skill repository and routing layer. It keeps inactive skills outside automatic discovery, maintains a searchable registry, and loads only the skills required for the current task to reduce context overhead and token cost.
+
 当 AI 编程助手安装了越来越多的 skills，能力会变强，但上下文也会变得越来越臃肿。每个项目都加载一大批平时用不到的 skill，会带来更高的固定开销、更长的技能列表和更低的任务聚焦度。
 
 **Skill Router** 用一个轻量的路由 skill 管理 Skill 仓库，让 Agent 只在真正需要时取用对应能力。
