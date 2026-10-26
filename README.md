@@ -4,7 +4,7 @@
 
 > **English summary:** Skill Router is a lightweight AI Agent Skill repository and routing layer. It keeps inactive skills outside automatic discovery, maintains a searchable registry, and loads only the skills required for the current task to reduce context overhead and token cost.
 
-当 AI 编程助手安装了越来越多的 skills，能力会变强，但上下文也会变得越来越臃肿。每个项目都加载一大批平时用不到的 skill，会带来更高的固定开销、更长的技能列表和更低的任务聚焦度。
+codex安装了越来越多的 skills，能力会变强，但上下文也会变得越来越臃肿。每个项目都加载一大批平时用不到的 skill，会带来更高的固定开销、更长的技能列表和更低的任务聚焦度。
 
 **Skill Router** 用一个轻量的路由 skill 管理 Skill 仓库，让 Agent 只在真正需要时取用对应能力。
 
@@ -121,7 +121,7 @@ flowchart LR
 
 ## 使用方法
 
-用户不需要了解仓库目录、索引格式或复制流程，只需要直接告诉 AI 想做什么。
+直接告诉 AI 想做什么。
 
 第一次使用时，可以这样说：
 
@@ -171,9 +171,11 @@ Skill Router 默认把禁用的 skill 移到备份目录，而不是直接删除
 
 ## 上下文开销对比（未激活口径）
 
+拿我的codex举例
+
 这里比较的是**没有读取 skill 正文**时的固定发现信息：skill 名称、简介和路径元数据。未激活的 skill 不会把完整 `SKILL.md` 放进上下文。
 
-按当前仓库 43 个 skill 的 registry，使用 `cl100k_base` 统计：
+按我的仓库 43 个 skill 的 registry，使用 `cl100k_base` 统计：
 
 | 方式 | 固定发现信息 | 说明 |
 |---|---:|---|
@@ -182,10 +184,6 @@ Skill Router 默认把禁用的 skill 移到备份目录，而不是直接删除
 | 固定开销减少 | **约 3,816 tokens** | 约减少 **98.7%**，约为原来的 **1/76** |
 
 Skill Router 自身的完整正文约 **958 tokens**，只有实际使用路由器时才读取。此时它通过脚本查询索引，只返回与当前项目匹配的少量条目；不会把整个 `registry.md` 或所有 skill 正文读入上下文。
-
-因此，平时项目只保留一个轻量 Router，固定开销很小；需要配置项目级 skill 时，额外上下文只随选中的 skill 增加。完整 skill 正文的总量约 11 万 tokens，只是把所有 skill 同时激活时的极端参考值，不是未激活状态的固定开销。
-
-上表只统计用户自定义 skill 的发现信息。Codex 的系统提示词、工具说明、内置 skill 和插件说明用固定项 `F` 表示：两种模式都保留 `F`，所以它们不影响这次差值；实际总量分别是 `F + 3,867` 与 `F + 51` tokens。
 
 ## 上下文优化效果
 
@@ -221,8 +219,8 @@ Skill Router 遵循四个原则：
 
 ## 总结
 
-Skill Router 不是另一个业务 skill，而是一个 Skill 仓库管理层。它把完整技能放在非自动扫描的仓库中，只将当前真正需要的能力取出使用。
+Skill Router 是一个 Skill 仓库管理层。它把完整技能放在非自动扫描的仓库中，只将当前真正需要的能力取出使用。
 
 通过技能索引、按需取用、仓库归档和可恢复操作，Skill Router 可以帮助 AI 编程环境减少上下文占用，降低 Token 开销，并让 Skill 资产保持轻量、清晰和可控。
 
-如果你的 Codex skill 已经从几个增长到几十个，Skill Router 可以作为一个简单的上下文优化入口。
+如果你的skill 已经增长到几十个，Skill Router 可以作为一个简单的上下文优化器。
