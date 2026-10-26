@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Router"
+  short_description: "Select and activate skills on demand"
+  default_prompt: "Use $skill-router to recommend and activate only the skills this project needs."
