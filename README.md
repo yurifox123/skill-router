@@ -65,6 +65,29 @@ Skill Router 使用一个普通目录保存未启用的 skill：
 
 Skill Router 的简介只挂出索引链接，不读取索引正文：`references/registry-schema.md` 用于修复格式，`skill-library/registry.jsonl` 是 Agent 查询用的清单，`skill-library/registry.md` 是可读清单。只有 Router 被使用时，才按当前任务读取其中需要的文件或条目。
 
+## 一张图看懂 Skill Router
+
+```mermaid
+flowchart LR
+    U[项目需求] --> R[Skill Router]
+    R --> I[按需读取 registry.jsonl]
+    I --> C{用户确认}
+    C -->|确认| P[复制到项目 .agents/skills/]
+    C -->|暂不使用| L[继续留在 skill-library]
+    L --> S[packages/ 中的完整 skill]
+    S -->|确认后复制| P
+    G[全局 .codex/skills/] --> Q[只保留 skill-router]
+
+    classDef active fill:#dbeafe,stroke:#2563eb,color:#111827;
+    classDef library fill:#dcfce7,stroke:#16a34a,color:#111827;
+    classDef decision fill:#fef3c7,stroke:#d97706,color:#111827;
+    class R,P,Q active;
+    class I,L,S library;
+    class C decision;
+```
+
+全局目录只负责发现 Router；完整 skill 和索引留在不会自动扫描的仓库中，项目确认后才得到自己的 skill 集合。
+
 ## 可读的 Skill 仓库清单
 
 Skill Router 维护两个清单文件：
@@ -186,6 +209,22 @@ Skill Router 默认把禁用的 skill 移到备份目录，而不是直接删除
 | 固定开销减少 | **约 3,816 tokens** | 约减少 **98.7%**，约为原来的 **1/76** |
 
 Skill Router 自身的完整正文约 **958 tokens**，只有实际使用路由器时才读取。此时它通过脚本查询索引，只返回与当前项目匹配的少量条目；不会把整个 `registry.md` 或所有 skill 正文读入上下文。
+
+```mermaid
+flowchart LR
+    A[43 个未激活 skill<br/>名称和简介<br/>约 3,867 tokens]
+    A -->|移入 skill-library| B[仅 Skill Router<br/>名称、简介和索引链接<br/>约 51 tokens]
+    B --> D[减少约 98.7%]
+    F[系统提示词、工具说明等固定项 F] -.-> A
+    F -.-> B
+
+    classDef high fill:#fee2e2,stroke:#dc2626,color:#111827;
+    classDef low fill:#dcfce7,stroke:#16a34a,color:#111827;
+    classDef fixed fill:#e5e7eb,stroke:#6b7280,color:#111827;
+    class A high;
+    class B,D low;
+    class F fixed;
+```
 
 ## 上下文优化效果
 
