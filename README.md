@@ -63,6 +63,8 @@ Skill Router 使用一个普通目录保存未启用的 skill：
 
 只有用户明确取用 skill 后，Skill Router 才会把它复制到当前 Agent 能发现的使用位置。仓库始终保留完整源包，未取用的 skill 不会进入当前任务的上下文。
 
+Skill Router 的简介只挂出索引链接，不读取索引正文：`references/registry-schema.md` 用于修复格式，`skill-library/registry.jsonl` 是 Agent 查询用的清单，`skill-library/registry.md` 是可读清单。只有 Router 被使用时，才按当前任务读取其中需要的文件或条目。
+
 ## 可读的 Skill 仓库清单
 
 Skill Router 维护两个清单文件：
@@ -84,7 +86,7 @@ registry.md      # 给人查看
 
 路由器会在索引更新时自动创建或重新生成 `registry.md`，不需要手动维护这份可读清单。
 
-技能简介集中放在仓库索引中，不写进每个项目的固定上下文。平时项目只保留轻量的 Skill Router；只有真正使用路由器时，才按任务读取相关索引并产生额外上下文。
+技能简介集中放在仓库索引中，不写进每个项目的固定上下文。平时项目只保留轻量的 Skill Router；只有真正使用路由器时，才按任务读取相关索引并产生额外上下文。索引由 Router 自动生成和同步，不应手动编辑。
 
 ## 安装和使用
 
@@ -106,12 +108,12 @@ flowchart LR
 
 典型流程如下：
 
-1. 将完整 skill 包存入仓库，保留 `SKILL.md`、references、scripts 和 assets。
+1. 将完整 skill 包存入仓库，保留 `SKILL.md`、references、scripts 和 assets；全局 `~/.codex/skills/` 只保留 `skill-router`，其他用户 skill 由 Router 移入 `skill-library/packages/`。
 2. 从 frontmatter 生成短索引，记录功能、标签、依赖、大小和 Token 估算。
 3. 只读取索引匹配用户需求，不扫描所有完整 skill。
 4. 推荐少量候选 skill，并显示取用成本和依赖关系。
 5. 用户确认后，复制对应的完整 skill 包到当前使用位置。
-6. 使用完成后可以归档，之后通过索引再次取用。
+6. 使用完成后可以归档，之后通过索引再次取用；项目 skill 放在项目的 `.agents/skills/`，不会重新写入全局 skill 根目录。
 
 推荐阶段只读取索引，不读取技能库中的全部 `SKILL.md`，从而避免为了推荐一个 skill 而加载整个技能库。
 
@@ -165,6 +167,8 @@ Skill Router 默认把禁用的 skill 移到备份目录，而不是直接删除
 
 平台管理的 `.system` skills、插件缓存和工具说明不属于用户自定义 skill，Skill Router 不会修改它们。
 
+运行全局初始化后，用户管理的全局目录只保留 `skill-router`；其他全局 skill 会被移动到 `~/.codex/skill-library/packages/`，并同步重建 `registry.jsonl` 与 `registry.md`。`.system` 等平台目录按原样保留。
+
 ## 上下文开销对比（未激活口径）
 
 这里比较的是**没有读取 skill 正文**时的固定发现信息：skill 名称、简介和路径元数据。未激活的 skill 不会把完整 `SKILL.md` 放进上下文。
@@ -174,14 +178,14 @@ Skill Router 默认把禁用的 skill 移到备份目录，而不是直接删除
 | 方式 | 固定发现信息 | 说明 |
 |---|---:|---|
 | 全部 43 个 skill 出现在固定目录 | **约 3,867 tokens** | 只包含名称和简介；包含路径时约 4,269 tokens |
-| 只有 Skill Router 出现在固定目录 | **约 36 tokens** | 只有 Router 的名称和简介 |
-| 固定开销减少 | **约 3,831 tokens** | 约减少 **99.1%**，约为原来的 **1/107** |
+| 只有 Skill Router 出现在固定目录 | **约 51 tokens** | 只有 Router 的名称和简介及索引链接 |
+| 固定开销减少 | **约 3,816 tokens** | 约减少 **98.7%**，约为原来的 **1/76** |
 
-Skill Router 自身的完整正文约 **794 tokens**，只有实际使用路由器时才读取。此时它通过脚本查询索引，只返回与当前项目匹配的少量条目；不会把整个 `registry.md` 或所有 skill 正文读入上下文。
+Skill Router 自身的完整正文约 **958 tokens**，只有实际使用路由器时才读取。此时它通过脚本查询索引，只返回与当前项目匹配的少量条目；不会把整个 `registry.md` 或所有 skill 正文读入上下文。
 
 因此，平时项目只保留一个轻量 Router，固定开销很小；需要配置项目级 skill 时，额外上下文只随选中的 skill 增加。完整 skill 正文的总量约 11 万 tokens，只是把所有 skill 同时激活时的极端参考值，不是未激活状态的固定开销。
 
-上表只统计用户自定义 skill 的发现信息。Codex 的系统提示词、工具说明、内置 skill 和插件说明用固定项 `F` 表示：两种模式都保留 `F`，所以它们不影响这次差值；实际总量分别是 `F + 3,867` 与 `F + 36` tokens。
+上表只统计用户自定义 skill 的发现信息。Codex 的系统提示词、工具说明、内置 skill 和插件说明用固定项 `F` 表示：两种模式都保留 `F`，所以它们不影响这次差值；实际总量分别是 `F + 3,867` 与 `F + 51` tokens。
 
 ## 上下文优化效果
 

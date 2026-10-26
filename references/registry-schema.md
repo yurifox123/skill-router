@@ -1,6 +1,8 @@
 # Registry schema
 
-The machine registry is JSON Lines at `<library>/registry.jsonl`, with one object per skill. `inventory --write` also generates `<library>/registry.md` as a human-readable table. The Markdown file is derived output; do not edit it by hand.
+This reference is read only after Skill Router is active and a registry format needs to be created or repaired. It is linked from the skill description, but it is not part of inactive skill discovery.
+
+The agent-facing registry is JSON Lines at `<library>/registry.jsonl`, with one object per skill. Router maintenance also generates `<library>/registry.md` as a readable table. The Markdown file is derived output; do not edit either generated catalog by hand.
 
 ```json
 {
@@ -18,4 +20,4 @@ The machine registry is JSON Lines at `<library>/registry.jsonl`, with one objec
 
 `name`, `purpose`, `tags`, `requires`, `source`, `path`, `size_bytes`, `token_estimate`, and `sha256` are stable fields. `requires` is a list of skill names. `source` is normally `library` after migration and may retain the original root for inventory reports.
 
-The router should read registry rows through the helper script and only inspect full skill instructions after the user selects a skill.
+The router should refresh both generated files when inventory changes, read registry rows through the helper script, and inspect full skill instructions only after the user selects a skill.

@@ -13,6 +13,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+ROUTER_NAME = "skill-router"
+
 if os.name == "nt":
     for stream in (sys.stdout, sys.stderr):
         try:
@@ -139,6 +141,13 @@ def write_registry(library: Path, records: list[dict]) -> None:
             )
 
 
+def refresh_library_registry(library: Path) -> list[dict]:
+    """Rebuild both generated catalogs from packages stored in the library."""
+    records = scan_library(library)
+    write_registry(library, records)
+    return records
+
+
 def read_registry(library: Path) -> list[dict]:
     path = registry_path(library)
     if not path.is_file():
@@ -177,7 +186,7 @@ def duplicate_names(rows: list[dict]) -> dict[str, list[dict]]:
 
 
 def command_inventory(args: argparse.Namespace) -> int:
-    rows = scan_library(args.library) + scan_active(args.roots, {"skill-router"})
+    rows = scan_library(args.library) + scan_active(args.roots, {ROUTER_NAME})
     duplicates = duplicate_names(rows)
     dedup: dict[str, dict] = {}
     for row in rows:
@@ -200,7 +209,7 @@ def command_global_init(args: argparse.Namespace) -> int:
     library = args.library
     packages = library / "packages"
     packages.mkdir(parents=True, exist_ok=True)
-    candidates = scan_active(args.roots, {"skill-router"})
+    candidates = scan_active(args.roots, {ROUTER_NAME})
     if not candidates:
         print("No user-managed global skills found.")
         return 0
@@ -220,7 +229,7 @@ def command_global_init(args: argparse.Namespace) -> int:
     for row in candidates:
         source = Path(row["source"]) / row["path"]
         shutil.move(str(source), str(packages / row["name"]))
-    write_registry(library, scan_library(library))
+    refresh_library_registry(library)
     print(f"Moved {len(candidates)} skills and wrote {registry_path(library)}")
     return 0
 
@@ -237,7 +246,7 @@ def project_terms(project: Path) -> set[str]:
 
 
 def command_recommend(args: argparse.Namespace) -> int:
-    rows = read_registry(args.library)
+    rows = refresh_library_registry(args.library)
     if not rows:
         raise SystemExit(f"No registry found at {registry_path(args.library)}. Run inventory --write first.")
     query = set(re.findall(r"[a-z0-9][a-z0-9-]{1,}", args.query.lower()))
@@ -264,18 +273,23 @@ def backup_path(library: Path, scope: str, name: str) -> Path:
 
 
 def command_enable(args: argparse.Namespace) -> int:
-    rows = {row["name"]: row for row in read_registry(args.library)}
+    if args.scope == "global":
+        if args.name != ROUTER_NAME:
+            raise SystemExit("Global scope is reserved for skill-router. Enable other skills at project scope.")
+        target = args.global_root / ROUTER_NAME
+        if target.is_dir():
+            print(f"already enabled {ROUTER_NAME} at {target}")
+            return 0
+        raise SystemExit(f"Skill Router is not installed at the global root: {target}")
+    rows = {row["name"]: row for row in refresh_library_registry(args.library)}
     if args.name not in rows:
         raise SystemExit(f"Skill not found in registry: {args.name}")
     source = args.library / rows[args.name]["path"]
     if not source.is_dir():
         raise SystemExit(f"Skill package missing: {source}")
-    if args.scope == "project":
-        if not args.project:
-            raise SystemExit("--project is required for project scope")
-        target = args.project / ".agents" / "skills" / args.name
-    else:
-        target = args.global_root / args.name
+    if not args.project:
+        raise SystemExit("--project is required for project scope")
+    target = args.project / ".agents" / "skills" / args.name
     if target.exists() and not args.replace:
         raise SystemExit(f"Destination exists: {target}. Use --replace only with explicit authorization.")
     lock = state_path(args)
@@ -301,18 +315,18 @@ def command_enable(args: argparse.Namespace) -> int:
     }
     lock.parent.mkdir(parents=True, exist_ok=True)
     lock.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    refresh_library_registry(args.library)
     print(f"enabled {args.name} at {target}")
     print("Skill discovery normally takes effect in the next turn or session.")
     return 0
 
 
 def command_disable(args: argparse.Namespace) -> int:
-    if args.scope == "project":
-        if not args.project:
-            raise SystemExit("--project is required for project scope")
-        target = args.project / ".agents" / "skills" / args.name
-    else:
-        target = args.global_root / args.name
+    if args.scope == "global":
+        raise SystemExit("Global scope is reserved for skill-router. Use global-init to migrate other skills to the library.")
+    if not args.project:
+        raise SystemExit("--project is required for project scope")
+    target = args.project / ".agents" / "skills" / args.name
     if not target.exists():
         print(f"Not active: {target}")
         return 0
@@ -340,17 +354,17 @@ def command_disable(args: argparse.Namespace) -> int:
     state.get("skills", {}).pop(args.name, None)
     lock.parent.mkdir(parents=True, exist_ok=True)
     lock.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    refresh_library_registry(args.library)
     print(f"disabled {args.name}")
     return 0
 
 
 def command_restore(args: argparse.Namespace) -> int:
-    if args.scope == "project":
-        if not args.project:
-            raise SystemExit("--project is required for project scope")
-        target = args.project / ".agents" / "skills" / args.name
-    else:
-        target = args.global_root / args.name
+    if args.scope == "global":
+        raise SystemExit("Global scope is reserved for skill-router. Restore other skills at project scope.")
+    if not args.project:
+        raise SystemExit("--project is required for project scope")
+    target = args.project / ".agents" / "skills" / args.name
     lock = state_path(args)
     if not lock.is_file():
         raise SystemExit(f"No state file found: {lock}")
@@ -377,6 +391,7 @@ def command_restore(args: argparse.Namespace) -> int:
     }
     state.get("backups", {}).pop(args.name, None)
     lock.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    refresh_library_registry(args.library)
     print(f"restored {args.name}")
     return 0
 
